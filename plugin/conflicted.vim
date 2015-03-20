@@ -8,7 +8,13 @@ let s:diffget_local_map = 'dgl'
 let s:diffget_upstream_map = 'dgu'
 
 function! s:Conflicted()
-  args `git ls-files -u \| awk '{print $4}' \| sort -u`
+  silent! args `git ls-files -u \| awk '{print $4}' \| sort -u`
+  argdelete *git*ls-files*awk*sort*
+  if argc() == 0
+    bdelete
+    echom "No conflicts detected!"
+    return
+  endif
   set tabline=%!ConflictedTabline()
   set guitablabel=%{ConflictedGuiTabLabel()}
   Merger
@@ -77,19 +83,26 @@ function! ConflictedVersion()
   end
 endfunction
 
+function! s:GitNextConflictOrQuit()
+  Gwrite
+  argdelete %
+  if !s:Next()
+    quit
+  endif
+endfunction
+
 function! s:GitNextConflict()
   Gwrite
   argdelete %
-  call s:NextOrQuit()
+  call s:Next()
 endfunction
 
-function! s:NextOrQuit()
-  if empty(argv())
-    quit
-  else
+function! s:Next()
+  if !empty(argv())
     bdelete
     argument "move to the next file in the arglist
     Merger
+    return 1
   endif
 endfunction
 
@@ -136,4 +149,5 @@ endfunction
 
 command! Conflicted call <sid>Conflicted()
 command! Merger call <sid>Merger()
-command! GitNextConflict call <sid>GitNextConflict()
+command! ConflictedNext call <sid>GitNextConflict()
+command! ConflictedNextOrQuit call <sid>GitNextConflictOrQuit()
